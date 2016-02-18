@@ -244,9 +244,9 @@
 /* JAEMIN */
 #include <linux/ioctl.h>
 #include <sys/ioctl.h>
-#define IOCTL_CMD_0 _IOW(0xFF, 0, int)
-#define IOCTL_CMD_1 _IOW(0xFF, 1, unsigned long)
-#define IOCTL_CMD_2 _IOW(0xFF, 2, unsigned long)
+#define IOCTL_CMD_OPTION _IOW(0xFF, 0, int)
+#define IOCTL_CMD_CONFIG _IOW(0xFF, 1, unsigned long)
+#define IOCTL_CMD_MUNMAP _IOW(0xFF, 2, unsigned long)
 
 /*
   Debugging:
@@ -304,7 +304,8 @@ __malloc_assert (const char *assertion, const char *file, unsigned int line,
 int my_fd = 0; // TODO: multi-process support
 
 static void *__my_mmap(void *addr, size_t size, int prot, int flags) {
-	int option = 0;
+	int option = 1;
+	unsigned long max_local = 4;
 
 	(void) __fxprintf(NULL, "__my_mmap called\n"); // DEBUG
 	fflush(stdout);
@@ -317,10 +318,12 @@ static void *__my_mmap(void *addr, size_t size, int prot, int flags) {
 			return __mmap(addr, size, prot, flags|MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
 		}
 	}
-
-	__ioctl(my_fd, IOCTL_CMD_0, &option); // TODO: cannot set option
 	(void) __fxprintf(NULL, "__open success, commencing mmap\n"); // DEBUG
 	fflush(stdout);
+
+	// default behavior: set maximum # of local superpages
+	__ioctl(my_fd, IOCTL_CMD_OPTION, &option);
+	__ioctl(my_fd, IOCTL_CMD_CONFIG, &max_local);
 	
 	return __mmap(addr, size, PROT_READ|PROT_WRITE, MAP_SHARED, my_fd, 0);
 }
