@@ -248,6 +248,11 @@
 #define IOCTL_CMD_CONFIG _IOW(0xFF, 1, unsigned long)
 #define IOCTL_CMD_MUNMAP _IOW(0xFF, 2, unsigned long)
 
+struct munmap_info {
+	void *addr;
+	size_t length;
+};
+
 /*
   Debugging:
 
@@ -301,7 +306,7 @@ __malloc_assert (const char *assertion, const char *file, unsigned int line,
 #endif
 
 /* JAEMIN */
-int my_fd = 0; // TODO: multi-process support
+int my_fd = 0; // TODO: multi-process support & is this okay?
 
 static void *__my_mmap(void *addr, size_t size, int prot, int flags) {
 	int option = 1;
@@ -326,6 +331,26 @@ static void *__my_mmap(void *addr, size_t size, int prot, int flags) {
 	__ioctl(my_fd, IOCTL_CMD_CONFIG, &max_local);
 	
 	return __mmap(addr, size, PROT_READ|PROT_WRITE, MAP_SHARED, my_fd, 0);
+}
+
+static int __my_munmap(void *addr, size_t length) {
+	struct munmap_info info;
+
+	info.addr = addr;
+	info.length = length;
+
+	(void) __fxprintf(NULL, "__my_munmap called\n"); // DEBUG
+	fflush(stdout);
+
+	if (my_fd <= 0) {
+		(void) __fxprintf(NULL, "my_fd <= 0 error\n"); // DEBUG
+		fflush(stdout);
+		return 0;
+	}
+
+	__ioctl(my_fd, IOCTL_CMD_MUNMAP, &info);
+
+	return __munmap(addr, length);
 }
 
 
@@ -2857,7 +2882,7 @@ munmap_chunk (mchunkptr p)
   /* If munmap failed the process virtual memory address space is in a
      bad shape.  Just leave the block hanging around, the process will
      terminate shortly anyway since not much can be done.  */
-  __munmap ((char *) block, total_size);
+  __my_munmap ((char *) block, total_size); // JAEMIN
 }
 
 #if HAVE_MREMAP
