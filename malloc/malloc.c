@@ -248,7 +248,7 @@
 #define IOCTL_CMD_CONFIG _IOW(0xFF, 1, unsigned long)
 #define IOCTL_CMD_MUNMAP _IOW(0xFF, 2, unsigned long)
 
-struct munmap_info {
+static struct __munmap_info {
 	void *addr;
 	size_t length;
 };
@@ -306,7 +306,7 @@ __malloc_assert (const char *assertion, const char *file, unsigned int line,
 #endif
 
 /* JAEMIN */
-int my_fd = 0; // TODO: multi-process support & is this okay?
+static int __my_fd = 0; // TODO: multi-process support & is this okay?
 
 static void *__my_mmap(void *addr, size_t size, int prot, int flags) {
 	int option = 1;
@@ -315,9 +315,9 @@ static void *__my_mmap(void *addr, size_t size, int prot, int flags) {
 	(void) __fxprintf(NULL, "__my_mmap called\n"); // DEBUG
 	fflush(stdout);
 
-	if (my_fd <= 0) {
-		my_fd = __open("/dev/gaia", O_RDWR);
-		if (my_fd == -1) {
+	if (__my_fd <= 0) {
+		__my_fd = __open("/dev/gaia", O_RDWR);
+		if (__my_fd == -1) {
 			(void) __fxprintf(NULL, "__open failure, resorting to standard mmap\n"); // DEBUG
 			fflush(stdout);
 			return __mmap(addr, size, prot, flags|MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
@@ -327,14 +327,14 @@ static void *__my_mmap(void *addr, size_t size, int prot, int flags) {
 	fflush(stdout);
 
 	// default behavior: set maximum # of local superpages
-	__ioctl(my_fd, IOCTL_CMD_OPTION, &option);
-	__ioctl(my_fd, IOCTL_CMD_CONFIG, &max_local);
+	__ioctl(__my_fd, IOCTL_CMD_OPTION, &option);
+	__ioctl(__my_fd, IOCTL_CMD_CONFIG, &max_local);
 	
-	return __mmap(addr, size, PROT_READ|PROT_WRITE, MAP_SHARED, my_fd, 0);
+	return __mmap(addr, size, PROT_READ|PROT_WRITE, MAP_SHARED, __my_fd, 0);
 }
 
 static int __my_munmap(void *addr, size_t length) {
-	struct munmap_info info;
+	struct __munmap_info info;
 
 	info.addr = addr;
 	info.length = length;
@@ -342,13 +342,13 @@ static int __my_munmap(void *addr, size_t length) {
 	(void) __fxprintf(NULL, "__my_munmap called\n"); // DEBUG
 	fflush(stdout);
 
-	if (my_fd <= 0) {
-		(void) __fxprintf(NULL, "my_fd <= 0 error\n"); // DEBUG
+	if (__my_fd <= 0) {
+		(void) __fxprintf(NULL, "my_fd <= 0: munmap before mmap\n"); // DEBUG
 		fflush(stdout);
 		return 0;
 	}
 
-	__ioctl(my_fd, IOCTL_CMD_MUNMAP, &info);
+	__ioctl(__my_fd, IOCTL_CMD_MUNMAP, &info);
 
 	return __munmap(addr, length);
 }
@@ -2882,7 +2882,9 @@ munmap_chunk (mchunkptr p)
   /* If munmap failed the process virtual memory address space is in a
      bad shape.  Just leave the block hanging around, the process will
      terminate shortly anyway since not much can be done.  */
-  __my_munmap ((char *) block, total_size); // JAEMIN
+  /* JAEMIN */
+  //__munmap ((char *) block, total_size);
+  __my_munmap ((char *) block, total_size);
 }
 
 #if HAVE_MREMAP
