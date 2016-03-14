@@ -2908,9 +2908,14 @@ mremap_chunk (mchunkptr p, size_t new_size)
   if (size + offset == new_size)
     return p;
 
+  /* JAEMIN - use munmap + mmap instead */
+  /*
   cp = (char *) __mremap ((char *) p - offset, size + offset, new_size,
                           MREMAP_MAYMOVE);
-
+  */
+   __my_munmap((char *) p - offset, size + offset);
+  cp = (char *) (MMAP (0, new_size, PROT_READ | PROT_WRITE, 0));
+ 
   if (cp == MAP_FAILED)
     return 0;
 
