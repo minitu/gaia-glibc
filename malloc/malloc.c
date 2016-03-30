@@ -2887,6 +2887,7 @@ mremap_chunk (mchunkptr p, size_t new_size)
   size_t page_mask = GLRO (dl_pagesize) - 1;
   INTERNAL_SIZE_T offset = p->prev_size;
   INTERNAL_SIZE_T size = chunksize (p);
+  INTERNAL_SIZE_T temp_size; // JAEMIN
   char *cp;
 
   assert (chunk_is_mmapped (p));
@@ -2912,7 +2913,12 @@ mremap_chunk (mchunkptr p, size_t new_size)
   if (cp == MAP_FAILED)
     return 0;
 
-  memcpy (cp + offset, p, (size) > (new_size) ? (new_size) : (size));
+  if (size > new_size)
+	  temp_size = new_size;
+  else
+	  temp_size = size;
+
+  memcpy (cp + offset, p, temp_size);
   __my_munmap((char *) p - offset, size + offset);
 
   /* JAEMIN */
