@@ -244,9 +244,7 @@
 /* JAEMIN */
 #include <linux/ioctl.h>
 #include <sys/ioctl.h>
-#define IOCTL_CMD_OPTION _IOW(0xFF, 0, int)
-#define IOCTL_CMD_CONFIG _IOW(0xFF, 1, unsigned long)
-#define IOCTL_CMD_MUNMAP _IOW(0xFF, 2, unsigned long)
+#define IOCTL_CMD_MUNMAP _IOW(0xFF, 0, unsigned long)
 
 static struct __munmap_info {
 	void *addr;
@@ -309,9 +307,6 @@ __malloc_assert (const char *assertion, const char *file, unsigned int line,
 static int __my_fd = 0; // TODO: multi-process support & is this okay?
 
 static void *__my_mmap(void *addr, size_t size, int prot, int flags) {
-	int option = 1;
-	unsigned long max_local = 4;
-
 	(void) __fxprintf(NULL, "__my_mmap called\n"); // DEBUG
 	fflush(stdout);
 
@@ -325,10 +320,6 @@ static void *__my_mmap(void *addr, size_t size, int prot, int flags) {
 	}
 	(void) __fxprintf(NULL, "__open success, commencing mmap\n"); // DEBUG
 	fflush(stdout);
-
-	// default behavior: set maximum # of local superpages
-	__ioctl(__my_fd, IOCTL_CMD_OPTION, &option);
-	__ioctl(__my_fd, IOCTL_CMD_CONFIG, &max_local);
 	
 	return __mmap(addr, size, PROT_READ|PROT_WRITE, MAP_SHARED, __my_fd, 0);
 }
@@ -2908,16 +2899,23 @@ mremap_chunk (mchunkptr p, size_t new_size)
   if (size + offset == new_size)
     return p;
 
-  /* JAEMIN - use munmap + mmap instead */
+  /* JAEMIN - use mmap + memcpy + munmap instead */
   /*
   cp = (char *) __mremap ((char *) p - offset, size + offset, new_size,
                           MREMAP_MAYMOVE);
-  */
-   __my_munmap((char *) p - offset, size + offset);
-  cp = (char *) (MMAP (0, new_size, PROT_READ | PROT_WRITE, 0));
- 
+
   if (cp == MAP_FAILED)
     return 0;
+  */
+  cp = (char *) (MMAP (0, new_size, PROT_READ | PROT_WRITE, 0));
+  
+  if (cp == MAP_FAILED)
+    return 0;
+
+  memcpy (cp + offset, p, (size) > (new_size) ? (new_size) : (size));
+  __my_munmap((char *) p - offset, size + offset);
+
+  /* JAEMIN */
 
   p = (mchunkptr) (cp + offset);
 
