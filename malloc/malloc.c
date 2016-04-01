@@ -2856,7 +2856,18 @@ munmap_chunk (mchunkptr p)
 
   assert (chunk_is_mmapped (p));
 
+  p->prev_size = 0; // JAEMIN
+
   uintptr_t block = (uintptr_t) p - p->prev_size;
+  /* JAEMIN */
+  /*
+  (void) __fxprintf(NULL, "p: %p, %lu\n", (void*)p, (unsigned long)p);
+  (void) __fxprintf(NULL, "chunk2mem(p) = %p\n", chunk2mem(p));
+  (void) __fxprintf(NULL, "p->prev_size = %lu\n", p->prev_size);
+  (void) __fxprintf(NULL, "block = %p, %lu\n", (void*)block, (unsigned long)block);
+  fflush(stdout);
+  */
+  /* JAEMIN */
   size_t total_size = p->prev_size + size;
   /* Unfortunately we have to do the compilers job by hand here.  Normally
      we would test BLOCK and TOTAL-SIZE separately for compliance with the
