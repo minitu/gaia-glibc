@@ -339,9 +339,12 @@ static int __my_munmap(void *addr, size_t length) {
 		return 0;
 	}
 
-	__ioctl(__my_fd, IOCTL_CMD_MUNMAP, &info);
+	if (__ioctl(__my_fd, IOCTL_CMD_MUNMAP, &info) < 0)
+		return -1;
 
-	return __munmap(addr, length);
+	return 0;
+
+	//return __munmap(addr, length);
 }
 
 
