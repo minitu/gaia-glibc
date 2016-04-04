@@ -321,7 +321,8 @@ static void *__my_mmap(void *addr, size_t size, int prot, int flags) {
 	(void) __fxprintf(NULL, "__open success, commencing mmap\n"); // DEBUG
 	fflush(stdout);
 	
-	return __mmap(addr, size, PROT_READ|PROT_WRITE, MAP_SHARED, __my_fd, 0);
+	//return __mmap(addr, size, PROT_READ|PROT_WRITE, MAP_SHARED, __my_fd, 0);
+	return __mmap(addr, size, prot, MAP_SHARED, __my_fd, 0);
 }
 
 static int __my_munmap(void *addr, size_t length) {
@@ -2856,18 +2857,16 @@ munmap_chunk (mchunkptr p)
 
   assert (chunk_is_mmapped (p));
 
-  p->prev_size = 0; // JAEMIN
+  //p->prev_size = 0; // JAEMIN
 
   uintptr_t block = (uintptr_t) p - p->prev_size;
-  /* JAEMIN */
-  /*
-  (void) __fxprintf(NULL, "p: %p, %lu\n", (void*)p, (unsigned long)p);
-  (void) __fxprintf(NULL, "chunk2mem(p) = %p\n", chunk2mem(p));
+  /* JAEMIN start */
+  //(void) __fxprintf(NULL, "p: %p, %lu\n", (void*)p, (unsigned long)p);
+  //(void) __fxprintf(NULL, "chunk2mem(p) = %p\n", chunk2mem(p));
   (void) __fxprintf(NULL, "p->prev_size = %lu\n", p->prev_size);
-  (void) __fxprintf(NULL, "block = %p, %lu\n", (void*)block, (unsigned long)block);
+  //(void) __fxprintf(NULL, "block = %p, %lu\n", (void*)block, (unsigned long)block);
   fflush(stdout);
-  */
-  /* JAEMIN */
+  /* JAEMIN end */
   size_t total_size = p->prev_size + size;
   /* Unfortunately we have to do the compilers job by hand here.  Normally
      we would test BLOCK and TOTAL-SIZE separately for compliance with the
@@ -2914,7 +2913,7 @@ mremap_chunk (mchunkptr p, size_t new_size)
   if (size + offset == new_size)
     return p;
 
-  /* JAEMIN - use mmap + memcpy + munmap instead */
+  /* JAEMIN start - use mmap + memcpy + munmap instead */
   /*
   cp = (char *) __mremap ((char *) p - offset, size + offset, new_size,
                           MREMAP_MAYMOVE);
@@ -2934,8 +2933,7 @@ mremap_chunk (mchunkptr p, size_t new_size)
 
   memcpy (cp + offset, p, temp_size);
   __my_munmap((char *) p - offset, size + offset);
-
-  /* JAEMIN */
+  /* JAEMIN end */
 
   p = (mchunkptr) (cp + offset);
 
